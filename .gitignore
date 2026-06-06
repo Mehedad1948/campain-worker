@@ -1,0 +1,43 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Environment Variables (Keep your DATABASE_URL and secrets safe!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Prisma 
+# (If you use SQLite locally, ignore the database files)
+*.db
+*.db-journal
+
+# Docker
+.dockerignore
+
+# Editor / IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
