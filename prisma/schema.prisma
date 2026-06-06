@@ -10,49 +10,51 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(cuid())
-  phone      String?  @unique
-  firstName  String?  
+  id         String    @id @default(cuid())
+  phone      String?   @unique
+  firstName  String?
   lastName   String?
   username   String?
-  photoUrl  String?
-  telegramId String?  @unique 
+  photoUrl   String?
+  telegramId String?   @unique
   otpCode    String?
   otpExpires DateTime?
-  role       Role     @default(USER)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  role       Role      @default(USER)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   bots       Bot[]
 }
 
 model Bot {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String     @unique
-  username  String
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  posts     Post[]
-  campaigns Campaign[]
-    connectedChats ConnectedChat[]
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token          String          @unique
+  username       String
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  posts          Post[]
+  campaigns      Campaign[]
+  connectedChats ConnectedChat[]
 }
 
 model Post {
-  id         String      @id @default(cuid())
-  botId      String
-  bot        Bot         @relation(fields: [botId], references: [id], onDelete: Cascade)
-  content    String?
-  mediaUrl   String?
-  mediaType  MediaType   @default(NONE)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  campaigns  Campaign[]
+  id              String     @id @default(cuid())
+  botId           String
+  bot             Bot        @relation(fields: [botId], references: [id], onDelete: Cascade)
+  content         String?
+  mediaUrl        String?
+  mediaType       MediaType  @default(NONE)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  sourceChatId    String? // برای ذخیره آیدی چت کاربر
+  sourceMessageId Int?
+  campaigns       Campaign[]
 }
 
 enum ScheduleType {
-  INTERVAL       // تکرار بر اساس فاصله زمانی (مثلا هر 24 ساعت)
+  INTERVAL // تکرار بر اساس فاصله زمانی (مثلا هر 24 ساعت)
   SPECIFIC_TIMES // تکرار در ساعات خاص (مثلا 10:00 و 18:00)
 }
 
@@ -62,11 +64,11 @@ model Campaign {
   bot           Bot           @relation(fields: [botId], references: [id], onDelete: Cascade)
   postId        String
   post          Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
-  chatId        String         // Target Group/Channel ID
+  chatId        String // Target Group/Channel ID
   chatTitle     String
-   scheduleType  ScheduleType  @default(INTERVAL)
-  intervalHours Int?           // Minimum 24 enforce in app logic
-   specificTimes String[]   
+  scheduleType  ScheduleType  @default(INTERVAL)
+  intervalHours Int? // Minimum 24 enforce in app logic
+  specificTimes String[]
   randomDelay   Boolean       @default(false) // ±30 mins
   isActive      Boolean       @default(false)
   nextRun       DateTime
@@ -88,8 +90,8 @@ model ConnectedChat {
   id        String   @id @default(cuid())
   botId     String
   bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
-  chatId    String   // شناسه عددی گروه یا کانال تلگرام
-  chatTitle String   // نام گروه
+  chatId    String // شناسه عددی گروه یا کانال تلگرام
+  chatTitle String // نام گروه
   createdAt DateTime @default(now())
 
   @@unique([botId, chatId]) // جلوگیری از ثبت تکراری یک گروه برای یک ربات
