@@ -51,6 +51,11 @@ model Post {
   campaigns  Campaign[]
 }
 
+enum ScheduleType {
+  INTERVAL       // تکرار بر اساس فاصله زمانی (مثلا هر 24 ساعت)
+  SPECIFIC_TIMES // تکرار در ساعات خاص (مثلا 10:00 و 18:00)
+}
+
 model Campaign {
   id            String        @id @default(cuid())
   botId         String
@@ -59,7 +64,9 @@ model Campaign {
   post          Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
   chatId        String         // Target Group/Channel ID
   chatTitle     String
-  intervalHours Int           // Minimum 24 enforce in app logic
+   scheduleType  ScheduleType  @default(INTERVAL)
+  intervalHours Int?           // Minimum 24 enforce in app logic
+   specificTimes String[]   
   randomDelay   Boolean       @default(false) // ±30 mins
   isActive      Boolean       @default(false)
   nextRun       DateTime
