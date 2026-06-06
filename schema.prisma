@@ -1,0 +1,105 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  phone      String?  @unique
+  firstName  String?  
+  lastName   String?
+  username   String?
+  photoUrl  String?
+  telegramId String?  @unique 
+  otpCode    String?
+  otpExpires DateTime?
+  role       Role     @default(USER)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  bots       Bot[]
+}
+
+model Bot {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String     @unique
+  username  String
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  posts     Post[]
+  campaigns Campaign[]
+    connectedChats ConnectedChat[]
+}
+
+model Post {
+  id         String      @id @default(cuid())
+  botId      String
+  bot        Bot         @relation(fields: [botId], references: [id], onDelete: Cascade)
+  content    String?
+  mediaUrl   String?
+  mediaType  MediaType   @default(NONE)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  campaigns  Campaign[]
+}
+
+model Campaign {
+  id            String        @id @default(cuid())
+  botId         String
+  bot           Bot           @relation(fields: [botId], references: [id], onDelete: Cascade)
+  postId        String
+  post          Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  chatId        String         // Target Group/Channel ID
+  chatTitle     String
+  intervalHours Int           // Minimum 24 enforce in app logic
+  randomDelay   Boolean       @default(false) // ±30 mins
+  isActive      Boolean       @default(false)
+  nextRun       DateTime
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  history       PostHistory[]
+}
+
+model PostHistory {
+  id         String     @id @default(cuid())
+  campaignId String
+  campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sentAt     DateTime   @default(now())
+  status     SendStatus
+  errorLog   String?
+}
+
+model ConnectedChat {
+  id        String   @id @default(cuid())
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  chatId    String   // شناسه عددی گروه یا کانال تلگرام
+  chatTitle String   // نام گروه
+  createdAt DateTime @default(now())
+
+  @@unique([botId, chatId]) // جلوگیری از ثبت تکراری یک گروه برای یک ربات
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MediaType {
+  NONE
+  IMAGE
+  VIDEO
+}
+
+enum SendStatus {
+  SUCCESS
+  FAILED
+}
