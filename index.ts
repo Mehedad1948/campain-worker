@@ -29,8 +29,12 @@ function calculateNextRunForSpecificTimes(times: string[]): Date {
 
 // اجرا در هر ۱ دقیقه
 cron.schedule('* * * * *', async () => {
-    console.log('در حال بررسی کمپین‌های سررسید شده...');
     const now = new Date();
+    // لاگر برای بررسی منطقه زمانی سرور و مقایسه آن با دیتابیس
+    console.log('----------------------------------------');
+    console.log(`[DEBUG] زمان اجرای کرون (Local): ${now.toString()}`);
+    console.log(`[DEBUG] زمان ارسال به دیتابیس (UTC): ${now.toISOString()}`);
+    console.log('در حال بررسی کمپین‌های سررسید شده...');
 
     try {
         const dueCampaigns = await prisma.campaign.findMany({
@@ -44,16 +48,20 @@ cron.schedule('* * * * *', async () => {
             }
         });
 
-        if (dueCampaigns.length === 0) return;
+        if (dueCampaigns.length === 0) {
+            console.log('[INFO] هیچ کمپینی برای ارسال در این لحظه یافت نشد.');
+            return;
+        }
 
-        console.log(`تعداد ${dueCampaigns.length} کمپین برای ارسال پیدا شد.`);
+        console.log(`[SUCCESS] تعداد ${dueCampaigns.length} کمپین برای ارسال پیدا شد.`);
 
         for (const campaign of dueCampaigns) {
+            console.log(`[DEBUG] در حال پردازش کمپین ID: ${campaign.id} | زمان تعیین شده در دیتابیس: ${campaign.nextRun.toISOString()}`);
             try {
                 // ارسال پیام
                 const telegramApiUrl = `https://api.telegram.org/bot${campaign.bot.token}/sendMessage`;
                 await axios.post(telegramApiUrl, {
-                    chat_id: campaign.chatId, // اصلاح شد
+                    chat_id: campaign.chatId,
                     text: campaign.post.content || "بدون متن",
                 });
 
@@ -64,7 +72,7 @@ cron.schedule('* * * * *', async () => {
                 } else if (campaign.scheduleType === 'SPECIFIC_TIMES' && campaign.specificTimes?.length > 0) {
                     nextRunDate = calculateNextRunForSpecificTimes(campaign.specificTimes);
                 } else {
-                    // در صورت دیتای نامعتبر، کمپین متوقف شود تا از لوپ بی‌نهایت جلوگیری شود
+                    console.log(`[WARN] دیتای زمان‌بندی نامعتبر برای کمپین ${campaign.id}، غیرفعال شد.`);
                     await prisma.campaign.update({
                         where: { id: campaign.id },
                         data: { isActive: false }
@@ -72,6 +80,8 @@ cron.schedule('* * * * *', async () => {
                     continue;
                 }
                 
+                console.log(`[DEBUG] زمان اجرای بعدی برای کمپین ${campaign.id} تنظیم شد روی: ${nextRunDate.toISOString()}`);
+
                 await prisma.campaign.update({
                     where: { id: campaign.id },
                     data: { nextRun: nextRunDate }
@@ -88,21 +98,21 @@ cron.schedule('* * * * *', async () => {
 
                 console.log(`✅ پیام برای کمپین ${campaign.id} با موفقیت ارسال شد.`);
             } catch (error: any) {
-                console.error(`❌ خطا در ارسال کمپین ${campaign.id}:`, error.message);
+                console.error(`❌ خطا در ارسال کمپین ${campaign.id}:`, error.response?.data || error.message);
                 
-                // ثبت خطا در تاریخچه (اصلاح شد به errorLog)
+                // ثبت خطا در تاریخچه
                 await prisma.postHistory.create({
                     data: {
                         campaignId: campaign.id,
                         status: 'FAILED',
-                        errorLog: error.message,
+                        errorLog: error.response?.data ? JSON.stringify(error.response.data) : error.message,
                         sentAt: new Date()
                     }
                 });
             }
         }
     } catch (error) {
-        console.error('خطای کلی در سیستم کرون‌جاب:', error);
+        console.error('❌ خطای کلی در سیستم کرون‌جاب دیتابیس:', error);
     }
 });
 

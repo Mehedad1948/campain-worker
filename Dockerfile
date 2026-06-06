@@ -15,5 +15,5 @@ RUN npx prisma generate
 # کپی کردن کل سورس کد
 COPY . .
 
-# اجرای فایل اصلی ورکر
-CMD ["node", "index.js"]
+# اجرای فایل اصلی ورکر از طریق اسکریپت start در package.json
+CMD ["npm", "start"]

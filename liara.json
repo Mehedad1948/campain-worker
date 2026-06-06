@@ -1,5 +1,0 @@
-{
-  "app": "my-telegram-worker",
-  "platform": "node",
-  "port": 8080
-}
