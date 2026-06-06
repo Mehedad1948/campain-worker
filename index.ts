@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
+import moment from "moment-timezone";
 
 const prisma = new PrismaClient();
 
@@ -18,46 +19,36 @@ async function callTelegramAPI(
 }
 
 function calculateNextRunForSpecificTimes(times: string[]): Date {
-  const now = new Date();
-
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
-
-  const currentTimeStr = `${String(currentHour).padStart(2, "0")}:${String(
-    currentMinute
-  ).padStart(2, "0")}`;
+  // دریافت زمان فعلی در منطقه زمانی تهران
+  const nowTehran = moment().tz("Asia/Tehran");
+  const currentTimeStr = nowTehran.format("HH:mm");
 
   const sortedTimes = [...times].sort();
-
   let nextTime = sortedTimes.find((t) => t > currentTimeStr);
 
-  const nextRunDate = new Date(now);
+  const nextRunDate = moment().tz("Asia/Tehran");
 
   if (nextTime) {
     const [hours, minutes] = nextTime.split(":");
-
-    nextRunDate.setHours(
-      Number(hours),
-      Number(minutes),
-      0,
-      0
-    );
+    nextRunDate
+      .hours(Number(hours))
+      .minutes(Number(minutes))
+      .seconds(0)
+      .milliseconds(0);
   } else {
+    // زمان بعدی برای فردا است
     nextTime = sortedTimes[0];
-
     const [hours, minutes] = nextTime.split(":");
-
-    nextRunDate.setDate(nextRunDate.getDate() + 1);
-
-    nextRunDate.setHours(
-      Number(hours),
-      Number(minutes),
-      0,
-      0
-    );
+    nextRunDate
+      .add(1, "days")
+      .hours(Number(hours))
+      .minutes(Number(minutes))
+      .seconds(0)
+      .milliseconds(0);
   }
 
-  return nextRunDate;
+  // تبدیل به آبجکت استاندارد Date (پریزما به‌طور خودکار آن را برای دیتابیس به UTC تبدیل می‌کند)
+  return nextRunDate.toDate();
 }
 
 function calculateNextRun(campaign: {
@@ -91,9 +82,10 @@ function calculateNextRun(campaign: {
 
 cron.schedule("* * * * *", async () => {
   const now = new Date();
+  const tehranTime = moment(now).tz("Asia/Tehran").format("YYYY-MM-DD HH:mm:ss");
 
   console.log("========================================");
-  console.log(`[CRON] Local Time: ${now.toString()}`);
+  console.log(`[CRON] Tehran Time: ${tehranTime}`);
   console.log(`[CRON] UTC Time:   ${now.toISOString()}`);
   console.log("[CRON] Checking campaigns...");
 
@@ -204,7 +196,7 @@ cron.schedule("* * * * *", async () => {
         });
 
         console.log(
-          `[UPDATED] Campaign ${campaign.id} nextRun => ${nextRun.toISOString()}`
+          `[UPDATED] Campaign ${campaign.id} nextRun => ${moment(nextRun).tz("Asia/Tehran").format("YYYY-MM-DD HH:mm:ss")} (Tehran Time)`
         );
 
         console.log(
